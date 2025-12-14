@@ -1,4 +1,5 @@
-import { test, Page } from "@playwright/test";
+import { test, expect, Page } from "@playwright/test";
+import "../tests/custom-matchers";
 
 // Login
 class LoginPage {
@@ -23,8 +24,19 @@ class InventoryPage {
     await this.page.click(`button[data-test="add-to-cart-${itemName}"]`);
   }
 
+  async getCartBadgeCount() {
+    return await this.page.locator(".shopping_cart_badge").textContent();
+  }
+
   async sortProducts(option: string) {
     await this.page.selectOption(".product_sort_container", option);
+  }
+
+  async getFirstProductName() {
+    return await this.page
+      .locator(".inventory_item_name")
+      .first()
+      .textContent();
   }
 
   async openCart() {
@@ -36,8 +48,16 @@ class InventoryPage {
 class CartPage {
   constructor(private page: Page) {}
 
+  async getCartItems() {
+    return await this.page.locator(".cart_item").count();
+  }
+
   async removeItem(itemName: string) {
     await this.page.click(`button[data-test="remove-${itemName}"]`);
+  }
+
+  async checkout() {
+    await this.page.click("#checkout");
   }
 }
 
@@ -48,7 +68,8 @@ test.describe("UI Tests", () => {
 
     await loginPage.navigate();
     await loginPage.login("standard_user", "secret_sauce");
-    await page.waitForURL("**/inventory.html");
+    await expect(page).toHaveURL(/.*inventory.html/);
+    await expect(page.locator(".title")).toContainText("Products");
   });
 
   // Test 2
@@ -57,7 +78,11 @@ test.describe("UI Tests", () => {
 
     await loginPage.navigate();
     await loginPage.login("invalid_user", "wrong_password");
-    await page.locator('[data-test="error"]').waitFor();
+    const errorMessage = page.locator('[data-test="error"]');
+    await expect(errorMessage).toBeVisible();
+    await expect(errorMessage).toContainText(
+      "Username and password do not match",
+    );
   });
 
   // Test 3
@@ -68,9 +93,12 @@ test.describe("UI Tests", () => {
     await loginPage.navigate();
     await loginPage.login("standard_user", "secret_sauce");
     await inventoryPage.addItemToCart("sauce-labs-backpack");
-    await page.locator(".shopping_cart_badge").waitFor();
+    const cartBadge = await inventoryPage.getCartBadgeCount();
+    expect(cartBadge).toBe("1");
     await inventoryPage.openCart();
-    await page.waitForURL("**/cart.html");
+    const cartPage = new CartPage(page);
+    const itemsCount = await cartPage.getCartItems();
+    expect(itemsCount).toHaveItemsInCart(1);
   });
 
   // Test 4
@@ -83,19 +111,65 @@ test.describe("UI Tests", () => {
     await loginPage.login("standard_user", "secret_sauce");
     await inventoryPage.addItemToCart("sauce-labs-backpack");
     await inventoryPage.addItemToCart("sauce-labs-bike-light");
+
+    let cartBadge = await inventoryPage.getCartBadgeCount();
+    expect(cartBadge).toBe("2");
     await inventoryPage.openCart();
+    let itemsCount = await cartPage.getCartItems();
+    expect(itemsCount).toBe(2);
     await cartPage.removeItem("sauce-labs-backpack");
+    itemsCount = await cartPage.getCartItems();
+    expect(itemsCount).toBe(1);
+    cartBadge = await page.locator(".shopping_cart_badge").textContent();
+    expect(cartBadge).toBe("1");
     await cartPage.removeItem("sauce-labs-bike-light");
+    itemsCount = await cartPage.getCartItems();
+    expect(itemsCount).toBe(0);
+    const cartBadgeElement = page.locator(".shopping_cart_badge");
+    await expect(cartBadgeElement).not.toBeVisible();
   });
 
   // Test 5
-  test("5. Sort products from lowest to highest price", async ({ page }) => {
+  test("5. Sort products from lowest to highest price", async ({
+    page,
+    context,
+  }) => {
+    await context.tracing.start({ screenshots: true, snapshots: true }); // Start tracing
     const loginPage = new LoginPage(page);
     const inventoryPage = new InventoryPage(page);
 
     await loginPage.navigate();
     await loginPage.login("standard_user", "secret_sauce");
     await inventoryPage.sortProducts("lohi");
-    await page.locator(".inventory_item_price").first().waitFor();
+    const prices = await page
+      .locator(".inventory_item_price")
+      .allTextContents();
+    const priceValues = prices.map((p) => parseFloat(p.replace("$", "")));
+    for (let i = 0; i < priceValues.length - 1; i++) {
+      expect(priceValues[i]).toBeLessThanOrEqual(priceValues[i + 1]);
+    }
+    await context.tracing.stop({ path: "trace.zip" }); // Stop tracing and save it to a file
+  });
+
+  // Test 6
+  test("6. FAILED - Add product with wrong assertion", async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    await loginPage.navigate();
+    await loginPage.login("standard_user", "secret_sauce");
+    await inventoryPage.addItemToCart("sauce-labs-backpack");
+    const cartBadge = await inventoryPage.getCartBadgeCount();
+    expect(cartBadge).toBe("5"); // Error
+  });
+
+  // Test 7
+  test("7. FIXED - Add product with correct assertion", async ({ page }) => {
+    const loginPage = new LoginPage(page);
+    const inventoryPage = new InventoryPage(page);
+    await loginPage.navigate();
+    await loginPage.login("standard_user", "secret_sauce");
+    await inventoryPage.addItemToCart("sauce-labs-backpack");
+    const cartBadge = await inventoryPage.getCartBadgeCount();
+    expect(cartBadge).toBe("1"); // Fixed
   });
 });
