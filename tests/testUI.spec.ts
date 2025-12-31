@@ -1,5 +1,8 @@
 import { test, expect, Page } from "@playwright/test";
+<<<<<<< HEAD
 import "../tests/custom-matchers";
+=======
+>>>>>>> 04879ee (Homework 21)
 
 // Login
 class LoginPage {
@@ -98,7 +101,11 @@ test.describe("UI Tests", () => {
     await inventoryPage.openCart();
     const cartPage = new CartPage(page);
     const itemsCount = await cartPage.getCartItems();
+<<<<<<< HEAD
     expect(itemsCount).toHaveItemsInCart(1);
+=======
+    expect(itemsCount).toBe(1);
+>>>>>>> 04879ee (Homework 21)
   });
 
   // Test 4
@@ -130,11 +137,15 @@ test.describe("UI Tests", () => {
   });
 
   // Test 5
+<<<<<<< HEAD
   test("5. Sort products from lowest to highest price", async ({
     page,
     context,
   }) => {
     await context.tracing.start({ screenshots: true, snapshots: true }); // Start tracing
+=======
+  test("5. Sort products from lowest to highest price", async ({ page }) => {
+>>>>>>> 04879ee (Homework 21)
     const loginPage = new LoginPage(page);
     const inventoryPage = new InventoryPage(page);
 
@@ -148,6 +159,7 @@ test.describe("UI Tests", () => {
     for (let i = 0; i < priceValues.length - 1; i++) {
       expect(priceValues[i]).toBeLessThanOrEqual(priceValues[i + 1]);
     }
+<<<<<<< HEAD
     await context.tracing.stop({ path: "trace.zip" }); // Stop tracing and save it to a file
   });
 
@@ -171,5 +183,7 @@ test.describe("UI Tests", () => {
     await inventoryPage.addItemToCart("sauce-labs-backpack");
     const cartBadge = await inventoryPage.getCartBadgeCount();
     expect(cartBadge).toBe("1"); // Fixed
+=======
+>>>>>>> 04879ee (Homework 21)
   });
 });
