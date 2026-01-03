@@ -30,7 +30,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
+
     headless: true,
+    baseURL: "https://www.saucedemo.com",
+    screenshot: "only-on-failure",
   },
   timeout: 60000,
   /* Configure projects for major browsers */
@@ -49,7 +52,20 @@ export default defineConfig({
       name: "webkit",
       use: { ...devices["Desktop Safari"] },
     },
+    {
+      name: "setup-problem",
+      testMatch: "**/global-setup.ts",
+    },
 
+    {
+      name: "problem-tests",
+      testMatch: "**/problem-user.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "problem-user-state.json",
+      },
+      dependencies: ["setup-problem"],
+    },
     /* Test against mobile viewports. */
     // {
     //   name: 'Mobile Chrome',
