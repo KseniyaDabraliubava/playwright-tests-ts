@@ -66,6 +66,17 @@ export default defineConfig({
       },
       dependencies: ["setup-problem"],
     },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'api-tests',
+      use: {
+        baseURL: 'https://api.restful-api.dev',
+      },
+      testMatch: '**/api-tests/**/*.spec.ts',
+    }
     /* Test against mobile viewports. */
     // {
     //   name: 'Mobile Chrome',
