@@ -10,3 +10,4 @@ node_modules/
 README.md
 .vscode
 allure-report
+allure-results
